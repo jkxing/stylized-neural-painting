@@ -1,0 +1,1 @@
+python demo_prog.py --img_path ./test_images/apple.jpg --img_seg_path ./test_images/apple_mask.jpg --canvas_color 'black' --max_m_strokes 500 --max_divide 5 --renderer oilpaintbrush --renderer_checkpoint_dir checkpoints_G_oilpaintbrush --net_G zou-fusion-net

@@ -157,9 +157,6 @@ class PainterBase():
 
         return final_rendered_image
 
-
-
-
     def _normalize_strokes(self, v):
 
         v = np.array(v.detach().cpu())
@@ -323,19 +320,31 @@ class ProgressivePainter(PainterBase):
         super(ProgressivePainter, self).__init__(args=args)
 
         self.max_divide = args.max_divide
+        self.max_divide_ = 0
 
         self.max_m_strokes = args.max_m_strokes
 
         self.m_strokes_per_block = self.stroke_parser()
 
         self.m_grid = 1
-
         self.img_path = args.img_path
-        self.img_ = cv2.imread(args.img_path, cv2.IMREAD_COLOR)
-        self.img_ = cv2.cvtColor(self.img_, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.
-        self.input_aspect_ratio = self.img_.shape[0] / self.img_.shape[1]
-        self.img_ = cv2.resize(self.img_, (self.net_G.out_size * args.max_divide,
-                                           self.net_G.out_size * args.max_divide), cv2.INTER_AREA)
+        self.img__ = cv2.imread(args.img_path, cv2.IMREAD_COLOR)
+        self.img__ = cv2.cvtColor(self.img__, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.
+        if args.img_seg_path.endswith(".npy"):
+            self.img_seg = np.load(args.img_seg_path)
+            self.img_seg = self.img_seg.astype(np.uint8)
+        else:
+            self.img_seg = cv2.imread(args.img_seg_path)
+        if len(self.img_seg.shape)==2:
+            self.img_seg = np.expand_dims(self.img_seg, axis=2)
+            self.img_seg = np.concatenate((self.img_seg, self.img_seg, self.img_seg), axis=-1)
+        print(self.img__.shape,self.img_seg.shape)
+        self.region_levels = int(np.max(self.img_seg)+1)
+        print("region levels is:",self.region_levels)
+        self.input_aspect_ratio = self.img__.shape[0] / self.img__.shape[1]
+        self.img__ = cv2.resize(self.img__, (args.canvas_size,args.canvas_size), cv2.INTER_AREA)  
+        self.img_seg = cv2.resize(self.img_seg, (args.canvas_size,args.canvas_size), interpolation=cv2.INTER_NEAREST)
+        self.mask = (self.img_seg==0)
 
 
     def stroke_parser(self):
