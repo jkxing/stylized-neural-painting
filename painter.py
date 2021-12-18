@@ -109,7 +109,7 @@ class PainterBase():
 
         return v
 
-    def _render(self, v, save_jpgs=True, save_video=True):
+    def _render(self, v, save_jpgs=True, save_video=True, suffix = ""):
 
         v = v[0,:,:]
         if self.args.keep_aspect_ratio:
@@ -128,7 +128,7 @@ class PainterBase():
 
         if save_video:
             video_writer = cv2.VideoWriter(
-                file_name + '_animated.mp4', cv2.VideoWriter_fourcc(*'MP4V'), 40,
+                file_name + "_"+suffix+ '_animated.mp4', cv2.VideoWriter_fourcc(*'MP4V'), 40,
                 (out_w, out_h))
 
         print('rendering canvas...')
@@ -140,7 +140,7 @@ class PainterBase():
             this_frame = self.rderr.canvas
             this_frame = cv2.resize(this_frame, (out_w, out_h), cv2.INTER_AREA)
             if save_jpgs:
-                plt.imsave(file_name + '_rendered_stroke_' + str((i+1)).zfill(4) +
+                plt.imsave(file_name +'_rendered_stroke_' + str((i+1)).zfill(4) +
                            '.png', this_frame)
             if save_video:
                 video_writer.write((this_frame[:,:,::-1] * 255.).astype(np.uint8))

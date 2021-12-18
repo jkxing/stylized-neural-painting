@@ -57,6 +57,10 @@ def optimize_x(pt):
     final_img = np.zeros((args.canvas_size,args.canvas_size,3),dtype = np.uint8)
     print(pt.region_levels)
     #pt.region_levels=1
+    
+    video_writer = cv2.VideoWriter(
+        "qiu" + "_final"+ '_animated.mp4', cv2.VideoWriter_fourcc(*'MP4V'), 40,
+        final_img.shape[:2])
     for level in range(0,pt.region_levels):
         if pt.rderr.canvas_color == 'white':
             CANVAS_tmp = torch.ones([1, 3, pt.net_G.out_size, pt.net_G.out_size]).to(device)
@@ -70,25 +74,19 @@ def optimize_x(pt):
         u = np.min(pos[0])
         l = np.min(pos[1])
         
+        CANVAS_tmp = final_img[u:d+1,l:r+1,:]
+        CANVAS_tmp = utils.img2patches(CANVAS_tmp, 1, pt.net_G.out_size).to(device)
         area = (d-u+1)*(r-l+1)
         print("d,r,u,l",d,r,u,l)
         print("area",area)
         pt.max_divide = math.ceil(math.sqrt(area)/pt.net_G.out_size)
         siz = pt.max_divide*pt.net_G.out_size
         lis = list(range(1,pt.max_divide+1))
-        t = pt.max_divide
-        while t<4:
+        t = len(lis)
+        while t<2:
             lis.append(pt.max_divide)
             t = t+1
         lis.append(pt.max_divide)
-        #print(siz)
-        #u = max(0,u-(siz-(d-u+1))//2)
-        #d = min(args.canvas_size-1, u+siz-1)
-        #l = max(0,l-(siz-(r-l+1))//2)
-        #r = min(args.canvas_size-1, l+siz-1)
-        #print("pt.max_divide",pt.max_divide)
-        #print("d,r,u,l",d,r,u,l)
-        #print("area",area)
         print(lis)
         pt.img_ = pt.img__[u:d+1,l:r+1,:]
         #pt.img_ = pt.img__ * pt.mask
@@ -148,16 +146,33 @@ def optimize_x(pt):
             CANVAS_tmp = pt._render(PARAM, save_jpgs=False, save_video=False)
             CANVAS_tmp = utils.img2patches(CANVAS_tmp, lis[cnt], pt.net_G.out_size).to(device)
         PARAMS = np.concatenate([PARAMS, PARAM], axis=1)
-        img = pt._render(PARAM, save_jpgs=False, save_video=False)*255
+        img = pt._render(PARAM, save_jpgs=False, save_video=False, suffix = str(level))*255
         img = img.astype(np.uint8)
         cv2.imshow("pimg",img)
         #cv2.waitKey(0)
+        pt.rderr.create_empty_canvas()
+        v = PARAM[0,:,:]
+        for i in range(v.shape[0]):  # for each stroke
+            pt.rderr.stroke_params = v[i, :]
+            if pt.rderr.check_stroke():
+                pt.rderr.draw_stroke()
+            this_frame = pt.rderr.canvas
+            this_frame = cv2.resize(this_frame,(r-l+1,d-u+1))*255
+            this_frame = this_frame.astype(np.uint8)
+            mask_tmp = (this_frame>10)
+            tmp_img = np.copy(final_img)
+            tmp_img[u:d+1,l:r+1,:] = tmp_img[u:d+1,l:r+1,:]*(1-mask_tmp) + this_frame*mask_tmp
+            tmp_img[u:d+1,l:r+1,:] = this_frame
+            timg = cv2.cvtColor(tmp_img, cv2.COLOR_BGR2RGB)
+            video_writer.write(timg.astype(np.uint8))
         final_img[u:d+1,l:r+1,:] = final_img[u:d+1,l:r+1,:]*(1-mask[u:d+1,l:r+1,:]) + cv2.resize(img,(r-l+1,d-u+1))*mask[u:d+1,l:r+1,:]
     pt._save_stroke_params(PARAMS)
-    final_rendered_image = pt._render(PARAMS, save_jpgs=True, save_video=True)
+    #final_rendered_image = pt._render(PARAMS, save_jpgs=True, save_video=True)
+    pt.rderr.create_empty_canvas()
+    
     final_img = cv2.cvtColor(final_img, cv2.COLOR_BGR2RGB)
     cv2.imshow("final_img",final_img)
-    cv2.imwrite("zhang_out.jpg",final_img)
+    cv2.imwrite("qiu_out.jpg",final_img)
     cv2.waitKey(0)
 
 
